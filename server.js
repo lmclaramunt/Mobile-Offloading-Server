@@ -26,8 +26,8 @@ io.on('connection', (socket) => {
         }else if(!response){ 
           // User won't be admin by defaul when added to the Map, unless is the first one
           // So let's check if he/she should be the new admin 
-          newAdmin(socket.id, data.battery, (response) => {  
-            if(response){   
+          newAdmin(socket.id, data.battery, (newAdmin, response) => {  
+            if(newAdmin){   
               // It's been confirmed that the new user should be the new admin, so update the Map and user's
               updateAdmin(socket.id, () => {
                  // Let other know about new user, who is the admin
@@ -54,32 +54,34 @@ io.on('connection', (socket) => {
   });
 
   socket.on('battery change', (battery) => {
-    getUsername(socket.id, (err, response) => {
-      if(!err){
-        const username = response;
-        updateBattery(socket.id, battery, () => {
-          var userVal = {
-            username: username,
-            battery: battery
-          };
-          newAdmin(socket.id, battery, (response) => {
-            if(response){   
-              // It's been confirmed that there should be a new admin, update the map
-              updateAdmin(socket.id, () => {
-                 // Let other sers know user whose batter changed is now the admin
-                 socket.emit('update user', {...userVal, admin: true});
-                 socket.broadcast.emit('update user', {...userVal, admin: true});
-              });              
-            }else{
-              // Update user values, battert is the only one that has changed
-              socket.emit('update user', {...userVal, admin: false});
-              socket.broadcast.emit('update user', {...userVal, admin: false});
-            }
-          });
-        });
-      }
-    });
-    
+    updateBattery(socket.id, battery, () => {     
+      newAdmin(socket.id, battery, (newAdmin, response) => {
+        if(newAdmin){   
+          // It's been confirmed that there should be a new admin, update the map
+          updateAdmin(response.id, () => {
+              // Let other sers know user whose batter changed is now the admin
+              getUsername(response.id, (err, response) => {
+                if(!err){
+                  console.log('Update admin');
+                  socket.emit('update admin', {username: response});
+                  socket.broadcast.emit('update admin', {username: response});
+                }
+              });               
+          });              
+        }
+        getUsername(socket.id, (err, response) => {
+          // Update user values, battert is the only one that has changed
+          if(!err){
+            var userVal = {
+              username: response,
+              battery: battery
+            };      
+            console.log('Update user');
+            socket.emit('update user', (userVal));
+            socket.broadcast.emit('update user', (userVal));
+          }
+        });       
+      });
+    });    
   });
-
 });

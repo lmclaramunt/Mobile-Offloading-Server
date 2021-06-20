@@ -1,3 +1,4 @@
+const e = require("express");
 const { response } = require("express");
 
 const usersMap = new Map();
@@ -43,15 +44,35 @@ function getUsername(id, callback){
 }
 
 // Check if there should be a new admin based on battery level
-function newAdmin(id, battery, callback){
-    getAdminBattery((response) => {
-        if(battery > response.battery &&
-            id != response.id){
-            return callback(true);
+function newAdmin(id, battery, callback){    
+    getAdminBattery((response) =>{
+        if(response.id === id){
+            getMaxBattery((response) => {
+                if(battery < response.battery){
+                    return callback(true, {id: response.id, battery: response.battery});
+                }else{
+                    return callback(false, null);
+                }
+            });
+        }else if(battery > response.battery){
+            return callback(true, {id: id, battery: battery});
         }else{
-            return callback(false);
+            return callback(false, null);
         }
-    })
+    });     
+}
+
+// Get max battery in the Map
+function getMaxBattery(callback){
+    var maxBattery = 0;
+    var maxUserId = 0;
+    for(let [key, user] of usersMap){
+        if(user.battery > maxBattery){
+            maxBattery = user.battery;
+            maxUserId = key;
+        }
+    }
+    return callback({id: maxUserId, battery: maxBattery});
 }
 
 // Get user with max battery, it should be the admin 
@@ -100,5 +121,6 @@ module.exports = {
     getAllUsers,
     newAdmin,
     updateAdmin,
-    updateBattery
+    updateBattery,
+    getAdminBattery
 }
