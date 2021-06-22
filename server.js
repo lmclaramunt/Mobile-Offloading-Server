@@ -5,9 +5,13 @@ const path = require('path');
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const port = process.env.PORT || 3000;
-const { addUser, getAllUsers,
-  newAdmin, updateAdmin, getUsername, updateBattery
-   } = require('./users');
+const { addUser, 
+  getAllUsers,
+  newAdmin, 
+  updateAdmin,
+  getUsername,
+  updateBattery,
+  filterServants} = require('./users');
 
 server.listen(port, () => {
   console.log(`Server listening at port ${port}`);
@@ -15,10 +19,18 @@ server.listen(port, () => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Map to keep track of server that have connected
+// Initially everyone will be a in this map
+const servantsMap = new Map();
+
+// To keep track of who the admin is when the service starts
+let admin = null;
+
 // User connects to the socket.io
 io.on('connection', (socket) => {
   
   socket.on('login', (data) =>{
+    console.log(socket);
     addUser(socket.id, data.username, data.battery, 
       data.latitude, data.longitude, (err, response) => {
         if(err){
@@ -39,15 +51,17 @@ io.on('connection', (socket) => {
             }
           });
           socket.emit('login results', {results: true});
+          servantsMap.set(socket.id, socket);
         }else{
           // If it's the first user to login, then it will definetely be assigned the admin role
           socket.broadcast.emit('userAdded', ({...data, admin: true}));
           socket.emit('login results', {results: true});
+          servantsMap.set(socket.id, socket);
         }
       });
   });
 
-  socket.on('joinLobby', (data) => {
+  socket.on('joinLobby', () => {
     getAllUsers((users) => {
       socket.emit('lobbyUsers', users);
     });
@@ -84,4 +98,21 @@ io.on('connection', (socket) => {
       });
     });    
   });
+
+  socket.on('start master', () => {
+    admin = socket;
+    filterServants(socket.id, (response)=> {
+      for(let [key, servant] of servantsMap){
+        if(response.includes(key)){
+          servant.emit('rejected', '');
+          servantsMap.delete(key);
+        }else{
+          servant.emit('go servant', {id: key});
+        }
+      }
+    });
+    socket.emit('go admin', {servants: servantsMap.size});
+  });
+
+  // TODO: disconnect
 });

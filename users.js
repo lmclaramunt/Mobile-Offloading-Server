@@ -115,6 +115,60 @@ function getAllUsers(callback){
     return callback(usersArray);
 }
 
+// Get the users who will server as servants
+// They must be within one km of the admin and with at least 20% of battery
+function filterServants(admin_id, callback){
+    const uselessServants = [];
+    getAdminLocation((err, response) => {
+        if(!err){
+            const admin_latitude = response.latitude;
+            const admin_longitutde = response.longitude;
+            for(let [key, user] of usersMap){
+                userWithinRange(admin_latitude, admin_longitutde, user.latitude, 
+                    user.longitude, (response) => {
+                        if(key === admin_id || user.battery < 20 || !response){
+                            uselessServants.push(key);  
+                        }
+                });
+            }
+        }
+    });
+    
+    return callback(uselessServants);
+}
+
+// Get the location (latitude and longitude) of the admin user
+function getAdminLocation(callback){
+    for(let [key, user] of usersMap){
+        if(user.admin){
+            return callback(false, {latitude: user.latitude, longitude: user.longitude});
+        }
+    }
+    return callback(true, null);
+}
+
+// Check if a user is within range of the admin (1 km)
+function userWithinRange(admin_lat, admin_long, serv_lat, serv_long, callback){
+    const earthRadius = 6371;
+    const distLat = toRadians(admin_lat-serv_lat);     // In radians
+    const distLong = toRadians(admin_long-serv_long);
+    const a = Math.pow(Math.sin(distLat/2), 2) +
+        Math.cos(toRadians(admin_lat)) * Math.cos(toRadians(serv_lat)) *
+        Math.pow(Math.sin(distLong/2),2);
+    const c = 2 * Math.atan(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = earthRadius * c; 
+    if(distance > 1){
+        return callback(false);
+    }else{
+        return callback(true);
+    }
+}
+
+// Convert a degree to radians
+function toRadians(degrees){
+    return degrees * (Math.PI/180);
+}
+
 module.exports = {
     addUser,
     getUsername,
@@ -122,5 +176,6 @@ module.exports = {
     newAdmin,
     updateAdmin,
     updateBattery,
-    getAdminBattery
+    getAdminBattery,
+    filterServants
 }
