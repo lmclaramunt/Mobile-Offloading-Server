@@ -1,4 +1,3 @@
-const e = require("express");
 const { response } = require("express");
 
 const usersMap = new Map();
@@ -25,7 +24,7 @@ function addUser(id, username, battery, latitude, longitude, callback){
 
 // Check if a name is new in the Map
 function newName(name, callback){
-    for(let [key, user] of usersMap){
+    for(let [, user] of usersMap){
         if (name === user.username){
             return callback(false);
         }
@@ -109,7 +108,7 @@ function updateBattery(id, battery, callback){
 // Get all users that are currently in the server
 function getAllUsers(callback){
     const usersArray = [];
-    for(let [key, user] of usersMap){
+    for(let [, user] of usersMap){
         usersArray.push(user);
     }
     return callback(usersArray);
@@ -127,7 +126,8 @@ function filterServants(admin_id, callback){
                 userWithinRange(admin_latitude, admin_longitutde, user.latitude, 
                     user.longitude, (response) => {
                         if(key === admin_id || user.battery < 20 || !response){
-                            uselessServants.push(key);  
+                            uselessServants.push(key);
+                            usersMap.delete(key);  
                         }
                 });
             }
@@ -139,7 +139,7 @@ function filterServants(admin_id, callback){
 
 // Get the location (latitude and longitude) of the admin user
 function getAdminLocation(callback){
-    for(let [key, user] of usersMap){
+    for(let [, user] of usersMap){
         if(user.admin){
             return callback(false, {latitude: user.latitude, longitude: user.longitude});
         }
@@ -169,6 +169,11 @@ function toRadians(degrees){
     return degrees * (Math.PI/180);
 }
 
+// Get number of remaining servants
+function getNumServant(){
+    return usersMap.size;
+}
+
 module.exports = {
     addUser,
     getUsername,
@@ -177,5 +182,6 @@ module.exports = {
     updateAdmin,
     updateBattery,
     getAdminBattery,
-    filterServants
+    filterServants,
+    getNumServant
 }

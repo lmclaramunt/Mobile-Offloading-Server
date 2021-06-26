@@ -11,7 +11,9 @@ const { addUser,
   updateAdmin,
   getUsername,
   updateBattery,
-  filterServants} = require('./users');
+  filterServants,
+  getNumServant
+  } = require('./users');
 
 server.listen(port, () => {
   console.log(`Server listening at port ${port}`);
@@ -73,7 +75,7 @@ io.on('connection', (socket) => {
         if(newAdmin){   
           // It's been confirmed that there should be a new admin, update the map
           updateAdmin(response.id, () => {
-              // Let other sers know user whose batter changed is now the admin
+              // Let other users know that the user whose batter changed is now the admin
               getUsername(response.id, (err, response) => {
                 if(!err){
                   console.log('Update admin');
@@ -99,6 +101,7 @@ io.on('connection', (socket) => {
     });    
   });
 
+  // Once the master is done writing the matrices
   socket.on('start master', () => {
     admin = socket;
     filterServants(socket.id, (response)=> {
@@ -112,6 +115,40 @@ io.on('connection', (socket) => {
       }
     });
     socket.emit('go admin', {servants: servantsMap.size});
+  });
+
+  socket.on('new matrices', (data) => {
+    var firstMatrix = JSON.parse(data[0]);
+    var secondMatrix = JSON.parse(data[1]);
+    var firstRows = data[2];
+    var secondRows = data[3];
+    var secondColumns = data[4];
+    var numServants = getNumServant();
+    var rowsPerServant = firstRows/numServants;
+    var servantRows = [];
+    var servants = [];
+    var s = 0;
+    for(let [key, value] of servantsMap){
+      if(key !== socket.id){
+        servants.push(value);
+      }
+    }
+    for(var i = 0; i < firstMatrix.length; i++){
+      servantRows.push(firstMatrix[i]);
+      if((i+1)%rowsPerServant === 0){
+        var matricesInfo = {
+          finalRows: rowsPerServant,
+          secondRows: secondRows,
+          secondColumns: secondColumns,
+          firstMatrix: servantRows,
+          secondMatrix: secondMatrix,
+          lastRow: i 
+        };
+        servants[s].emit('servant matrices', matricesInfo);
+        servantRows = [];
+        s++;
+      }
+    }
   });
 
   // TODO: disconnect
