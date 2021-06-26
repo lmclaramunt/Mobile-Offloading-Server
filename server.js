@@ -151,5 +151,11 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Servants sent back their results from matrix multiplication
+  // Give results to the master
+  socket.on('multiplication result', (data) => {
+    admin.emit('partial results', (data));
+  });
+
   // TODO: disconnect
 });
