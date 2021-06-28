@@ -142,6 +142,7 @@ io.on('connection', (socket) => {
           secondColumns: secondColumns,
           firstMatrix: servantRows,
           secondMatrix: secondMatrix,
+          firstRow: i-(i%rowsPerServant),
           lastRow: i 
         };
         servants[s].emit('servant matrices', matricesInfo);
