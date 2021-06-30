@@ -123,31 +123,48 @@ io.on('connection', (socket) => {
     var firstRows = data[2];
     var secondRows = data[3];
     var secondColumns = data[4];
-    var numServants = getNumServant();
-    var rowsPerServant = firstRows/numServants;
-    var servantRows = [];
-    var servants = [];
-    var s = 0;
-    for(let [key, value] of servantsMap){
-      if(key !== socket.id){
-        servants.push(value);
+    var distributed = data[5];
+    if(distributed){
+      var numServants = getNumServant();
+      var rowsPerServant = firstRows/numServants;
+      var servantRows = [];
+      var servants = [];
+      var s = 0;
+      for(let [key, value] of servantsMap){
+        if(key !== socket.id){
+          servants.push(value);
+        }
       }
-    }
-    for(var i = 0; i < firstMatrix.length; i++){
-      servantRows.push(firstMatrix[i]);
-      if((i+1)%rowsPerServant === 0){
-        var matricesInfo = {
-          finalRows: rowsPerServant,
-          secondRows: secondRows,
-          secondColumns: secondColumns,
-          firstMatrix: servantRows,
-          secondMatrix: secondMatrix,
-          firstRow: i-(i%rowsPerServant),
-          lastRow: i 
-        };
-        servants[s].emit('servant matrices', matricesInfo);
-        servantRows = [];
-        s++;
+      for(var i = 0; i < firstMatrix.length; i++){
+        servantRows.push(firstMatrix[i]);
+        if((i+1)%rowsPerServant === 0){
+          var matricesInfo = {
+            finalRows: rowsPerServant,
+            secondRows: secondRows,
+            secondColumns: secondColumns,
+            firstMatrix: servantRows,
+            secondMatrix: secondMatrix,
+            firstRow: i-(i%rowsPerServant),
+            lastRow: i 
+          };
+          servants[s].emit('servant matrices', matricesInfo);
+          servantRows = [];
+          s++;
+        }
+      }
+    }else{
+      // Master does not distribute matrices among the servants
+      // Sends entire matrices to each servant, for testing purposes
+      var matricesInfo = {
+        firstColumns: secondRows,
+        secondColumns: secondColumns,
+        firstMatrix: firstMatrix,
+        secondMatrix: secondMatrix
+      }
+      for(let [key, servant] of servantsMap){
+        if(key !== socket.id){
+          servant.emit('servant test', matricesInfo);
+        }
       }
     }
   });
