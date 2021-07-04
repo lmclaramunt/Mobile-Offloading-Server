@@ -6,9 +6,9 @@ This is a node.js server based on socket.io which enables distributed computing 
 * Android API level: 29
 
 ## Initialization
-Download the source code and go to the root directory. You can start running the following scripts.
+Download the source code and go to the root directory in the terminal. You can start running the following scripts.
 ```
 npm install
-node server.js
+node server users
 ```
 Now your socket.io server will listening on `localhost:3000`
