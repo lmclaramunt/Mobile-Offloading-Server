@@ -8,7 +8,7 @@ This is a node.js server based on socket.io which enables distributed computing 
 ## Initialization
 Download the source code and go to the root directory. You can start running the following scripts.
 ```
-node install
+npm install
 node server.js
 ```
 Now your socket.io server will listening on `localhost:3000`
