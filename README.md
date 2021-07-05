@@ -1,7 +1,7 @@
 # CSE535 Mobile offloading project
 This is a node.js server based on socket.io which enables distributed computing accross Android devices. 
 
-## Requirnment
+## Requirement
 * Node.js version: 14+
 * Android API level: 29
 
