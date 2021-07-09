@@ -28,39 +28,43 @@ const servantsMap = new Map();
 // To keep track of who the admin is when the service starts
 let admin = null;
 
+let sessionStarted = false;
+
 // User connects to the socket.io
 io.on('connection', (socket) => {
-  
   socket.on('login', (data) =>{
-    console.log(socket);
-    addUser(socket.id, data.username, data.battery, 
-      data.latitude, data.longitude, (err, response) => {
-        if(err){
-          socket.emit('login results', {results: false});   // User not able to login
-        }else if(!response){ 
-          // User won't be admin by defaul when added to the Map, unless is the first one
-          // So let's check if he/she should be the new admin 
-          newAdmin(socket.id, data.battery, (newAdmin, response) => {  
-            if(newAdmin){   
-              // It's been confirmed that the new user should be the new admin, so update the Map and user's
-              updateAdmin(socket.id, () => {
-                 // Let other know about new user, who is the admin
-                socket.broadcast.emit('userAdded', ({ ...data, admin: true}));        
-              });              
-            }else{
-              // The admin has not changed
-              socket.broadcast.emit('userAdded', ({...data, admin: false}));
-            }
-          });
-          socket.emit('login results', {results: true});
-          servantsMap.set(socket.id, socket);
-        }else{
-          // If it's the first user to login, then it will definetely be assigned the admin role
-          socket.broadcast.emit('userAdded', ({...data, admin: true}));
-          socket.emit('login results', {results: true});
-          servantsMap.set(socket.id, socket);
-        }
-      });
+    if(!sessionStarted){
+      addUser(socket.id, data.username, data.battery, 
+        data.latitude, data.longitude, (err, response) => {
+          if(err){
+            socket.emit('login results', {results: false});   // User not able to login
+          }else if(!response){ 
+            // User won't be admin by defaul when added to the Map, unless is the first one
+            // So let's check if he/she should be the new admin 
+            newAdmin(socket.id, data.battery, (newAdmin, response) => {  
+              if(newAdmin){   
+                // It's been confirmed that the new user should be the new admin, so update the Map and user's
+                updateAdmin(socket.id, () => {
+                  // Let other know about new user, who is the admin
+                  socket.broadcast.emit('userAdded', ({ ...data, admin: true}));        
+                });              
+              }else{
+                // The admin has not changed
+                socket.broadcast.emit('userAdded', ({...data, admin: false}));
+              }
+            });
+            socket.emit('login results', {results: true});
+            servantsMap.set(socket.id, socket);
+          }else{
+            // If it's the first user to login, then it will definetely be assigned the admin role
+            socket.broadcast.emit('userAdded', ({...data, admin: true}));
+            socket.emit('login results', {results: true});
+            servantsMap.set(socket.id, socket);
+          }
+        });
+    }else{
+      socket.emit('lobby closed', '');
+    }
   });
 
   socket.on('joinLobby', () => {
@@ -115,6 +119,7 @@ io.on('connection', (socket) => {
       }
     });
     socket.emit('go admin', {servants: servantsMap.size});
+    sessionStarted = true;
   });
 
   socket.on('new matrices', (data) => {

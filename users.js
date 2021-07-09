@@ -157,7 +157,7 @@ function userWithinRange(admin_lat, admin_long, serv_lat, serv_long, callback){
         Math.pow(Math.sin(distLong/2),2);
     const c = 2 * Math.atan(Math.sqrt(a), Math.sqrt(1-a));
     const distance = earthRadius * c; 
-    if(distance > 1){
+    if(distance > 0.1){
         return callback(false);
     }else{
         return callback(true);
